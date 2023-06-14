@@ -8,8 +8,8 @@ import { stripe } from "./stripe";
 import { toDateTime } from "./helpers";
 
 export const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
 const upsertProductRecord = async (product: Stripe.Product) => {
@@ -23,12 +23,8 @@ const upsertProductRecord = async (product: Stripe.Product) => {
   };
 
   const { error } = await supabaseAdmin.from("products").upsert([productData]);
-
-  if (error) {
-    throw error;
-  }
-
-  console.log(`Product upserted/updated: ${product.id}`);
+  if (error) throw error;
+  console.log(`Product inserted/updated: ${product.id}`);
 };
 
 const upsertPriceRecord = async (price: Stripe.Price) => {
@@ -47,12 +43,8 @@ const upsertPriceRecord = async (price: Stripe.Price) => {
   };
 
   const { error } = await supabaseAdmin.from("prices").upsert([priceData]);
-
-  if (error) {
-    throw error;
-  }
-
-  console.log(`Price upserted/updated: ${price.id}`);
+  if (error) throw error;
+  console.log(`Price inserted/updated: ${price.id}`);
 };
 
 const createOrRetrieveCustomer = async ({
@@ -67,48 +59,35 @@ const createOrRetrieveCustomer = async ({
     .select("stripe_customer_id")
     .eq("id", uuid)
     .single();
-
-  if (error || data?.stripe_customer_id) {
-    const customerData: { metadata: { supabaseUID: string }; email?: string } =
+  if (error || !data?.stripe_customer_id) {
+    const customerData: { metadata: { supabaseUUID: string }; email?: string } =
       {
-        metadata: { supabaseUID: uuid },
+        metadata: {
+          supabaseUUID: uuid,
+        },
       };
-
-    if (email) {
-      customerData.email = email;
-    }
-
+    if (email) customerData.email = email;
     const customer = await stripe.customers.create(customerData);
     const { error: supabaseError } = await supabaseAdmin
       .from("customers")
-      .upsert([{ id: uuid, stripe_customer_id: customer.id }]);
-
-    if (supabaseError) {
-      throw supabaseError;
-    }
-
-    console.log(`New customer created and inserted: ${uuid}`);
-
+      .insert([{ id: uuid, stripe_customer_id: customer.id }]);
+    if (supabaseError) throw supabaseError;
+    console.log(`New customer created and inserted for ${uuid}.`);
     return customer.id;
   }
-
-  return data?.stripe_customer_id;
+  return data.stripe_customer_id;
 };
 
 const copyBillingDetailsToCustomer = async (
   uuid: string,
   payment_method: Stripe.PaymentMethod
 ) => {
+  //Todo: check this assertion
   const customer = payment_method.customer as string;
   const { name, phone, address } = payment_method.billing_details;
-
-  if (!name || !phone || !address) {
-    return;
-  }
-
+  if (!name || !phone || !address) return;
   //@ts-ignore
   await stripe.customers.update(customer, { name, phone, address });
-
   const { error } = await supabaseAdmin
     .from("users")
     .update({
@@ -116,10 +95,7 @@ const copyBillingDetailsToCustomer = async (
       payment_method: { ...payment_method[payment_method.type] },
     })
     .eq("id", uuid);
-
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 };
 
 const manageSubscriptionStatusChange = async (

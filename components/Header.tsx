@@ -12,6 +12,7 @@ import Button from "./Button";
 import { useUser } from "@/hooks/useUser";
 import { FaUserAlt } from "react-icons/fa";
 import { toast } from "react-hot-toast";
+import usePlayer from "@/hooks/usePlayer";
 
 interface IHeaderProps {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ interface IHeaderProps {
 }
 
 const Header: React.FC<IHeaderProps> = ({ children, className }) => {
+  const player = usePlayer();
   const authModal = useAuthModal();
   const router = useRouter();
 
@@ -27,8 +29,8 @@ const Header: React.FC<IHeaderProps> = ({ children, className }) => {
 
   const handleLogout = async () => {
     const { error } = await supabaseClient.auth.signOut();
-    //TODO: Reset any playing songs
 
+    player.reset();
     router.refresh();
 
     if (error) {
@@ -63,24 +65,26 @@ const Header: React.FC<IHeaderProps> = ({ children, className }) => {
           </button>
         </div>
         <div className='flex items-center md:hidden gap-x-2'>
-          <button className='flex items-center justify-center p-2 transition bg-white rounded-full hover:opacity-75'>
+          <button
+            onClick={() => router.push("/")}
+            className='flex items-center justify-center p-2 transition bg-white rounded-full hover:opacity-75'>
             <HiHome className='text-black' size={20} />
           </button>
-          <button className='flex items-center justify-center p-2 transition bg-white rounded-full hover:opacity-75'>
+          <button
+            onClick={() => router.push("/search")}
+            className='flex items-center justify-center p-2 transition bg-white rounded-full hover:opacity-75'>
             <BiSearch className='text-black' size={20} />
           </button>
         </div>
         <div className='flex items-center justify-between gap-x-4'>
           {user ? (
             <div className='flex items-center gap-x-4'>
-              <Button
-                className='px-6 py-2 bg-white'
-                onClick={handleLogout}>
+              <Button className='px-6 py-2 bg-white' onClick={handleLogout}>
                 Logout
               </Button>
               <Button
                 className='bg-white'
-                onClick={() => router.prefetch("/account")}>
+                onClick={() => router.push("/account")}>
                 <FaUserAlt />
               </Button>
             </div>
