@@ -82,13 +82,23 @@ const SubscribeModal: React.FC<ISubscribeModalProps> = ({ products }) => {
 
           return product.prices.map(price => {
             return (
-              <Button
-                onClick={() => handleCheckout(price)}
-                key={price.id}
-                disabled={isLoading || price.id === priceIdLoading}
-                className='mb-4'>
-                {`Subscribe for ${formatPrice(price)} a ${price.interval}`}
-              </Button>
+              <div key={price.id}>
+                <p className='pb-2 text-sm text-center'>
+                  Stripe Test Card: 4242 4242 4242 4242
+                </p>
+                <p className='pb-2 text-sm text-center'>
+                  Stripe Test Expiry: 08/29 (anything in the future)
+                </p>
+                <p className='pb-2 text-sm text-center'>
+                  Stripe Test CVC: 731 (any 3 digit number)
+                </p>
+                <Button
+                  onClick={() => handleCheckout(price)}
+                  disabled={isLoading || price.id === priceIdLoading}
+                  className='mb-4'>
+                  {`Subscribe for ${formatPrice(price)} a ${price.interval}`}
+                </Button>
+              </div>
             );
           });
         })}
